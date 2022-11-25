@@ -1,0 +1,3 @@
+SELECT *
+FROM ppio_rt_dwh_maxcompute.dwd_business_require_1min
+;

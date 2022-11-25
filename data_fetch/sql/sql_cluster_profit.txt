@@ -1,0 +1,6 @@
+SELECT uuid, cal_date_time, income, biz_name, biz_income, biz_bandwidth_expenses, biz_robot_expenses, biz_test_expenses, pt
+FROM ppio_env_test.ods_device_billing_breakdown_v2
+WHERE pt = {}
+AND biz_is_billing = 1
+{limit}LIMIT 100
+;
