@@ -1,12 +1,18 @@
 from torch import nn
 import argparse
 import math
-from custom_transformer import Transformer
-from models.data_process_utils import *
+from custom_transformer_token import Transformer
+
+import sys
+sys.path.append('../')
+
+from data_process_utils import *
+from global_utils import *
 from tqdm import tqdm
 from torch.optim import Adam
 import torch
 import time
+from torch.utils.data import DataLoader
 
 
 # https://pytorch.org/tutorials/beginner/transformer_tutorial.html
@@ -138,13 +144,36 @@ def batch_generator_all(X, Y, num_obs_to_train, seq_len):
     Y_train_all = []
 
     for i in range(num_ts):
-        for j in range(num_obs_to_train, num_periods - seq_len, 24):
+        for j in range(num_obs_to_train, num_periods - seq_len, 12):
             X_train_all.append(X[i, j-num_obs_to_train:j, :])
             Y_train_all.append(Y[i, j:j+seq_len])
 
     X_train_all = np.asarray(X_train_all).reshape(-1, num_obs_to_train, n_feats)
     Y_train_all = np.asarray(Y_train_all).reshape(-1, seq_len)
     return X_train_all, Y_train_all
+
+
+def batch_generator_padding(X, Y, num_obs_to_train, seq_len):
+    '''
+        Args:
+        X (array like): shape (num_samples, num_features, num_periods)
+        y (array like): shape (num_samples, num_periods)
+        num_obs_to_train (int):
+        seq_len (int): sequence/encoder/decoder length
+        batch_size (int)
+        '''
+    num_ts, num_periods, n_feats = X.shape
+    X_all = []
+    Y_all = []
+
+    for i in range(num_ts):
+        for j in range(num_obs_to_train, num_periods - seq_len, 12):
+            X_all.append(X[i, j-num_obs_to_train:j+seq_len, :])
+            Y_all.append(Y[i, j:j+seq_len])
+
+    X_all = np.asarray(X_all).reshape(-1, num_obs_to_train+seq_len, n_feats)
+    Y_all = np.asarray(Y_all).reshape(-1, seq_len)
+    return X_all, Y_all
 
 
 def train(X, y, args):
@@ -175,7 +204,7 @@ def train(X, y, args):
     #                       activation=args.activation,
     #                       custom_encoder=None,
     #                       custom_decoder=None)
-    model = Transformer(args.d_model, args.d_model, num_features, args.dec_seq_len, args.out_seq_len,
+    model = Transformer(args.d_model, args.d_model, num_features, args.enc_seq_len, args.dec_seq_len, args.out_seq_len,
                         n_encoder_layers=args.n_encoder_layers, n_decoder_layers=args.n_decoder_layers,
                         n_heads=args.nhead, dropout=args.dropout)
 
@@ -185,9 +214,11 @@ def train(X, y, args):
     optimizer = Adam(model.parameters(), lr=args.lr)
     random.seed(2)
     # select sku with most top n quantities
-    Xtr, ytr, Xte, yte = train_test_split(X, y)
+    Xtr, ytr, Xte, yte = train_test_split(X, y, train_ratio=0.8)
 
     losses = []
+    test_mse = []
+    test_mae = []
     mse = nn.MSELoss().to(device)
     cnt = 0
 
@@ -198,13 +229,18 @@ def train(X, y, args):
         yscaler = LogScaler()
     elif args.mean_scaler:
         yscaler = MeanScaler()
+    elif args.minmax_scaler:
+        yscaler = MinMaxScaler()
     if yscaler is not None:
         ytr = yscaler.fit_transform(ytr)
 
-    # training
+    
     pre_seq_len = args.out_seq_len
-    num_obs_to_train = args.num_obs_to_train
-    X_train_all, Y_train_all = batch_generator_all(Xtr, ytr, num_obs_to_train, pre_seq_len)
+    num_obs_to_train = args.enc_seq_len
+    X_train_all, Y_train_all = batch_generator_padding(Xtr, ytr, num_obs_to_train, pre_seq_len)
+    X_test_all, Y_test_all = batch_generator_padding(Xte, yte, num_obs_to_train, pre_seq_len)
+    
+    # training
     for epoch in tqdm(range(args.num_epoches)):
         # print("Epoch {} starts...".format(epoch))
         for step in range(int(len(X_train_all)/args.batch_size)):
@@ -217,12 +253,41 @@ def train(X, y, args):
             ypred = model(Xtrain_tensor)
             loss = mse(ypred, ytrain_tensor)
             if (epoch % 10 == 0 and step == 0):
-                print('The MSE Loss {}'.format(loss.item()))
+                print('The Train MSE Loss {}'.format(loss.item()))
             losses.append(loss.item())
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
             cnt += 1
+
+        with torch.no_grad():
+            test_epoch_loss = []
+            test_epoch_mse = []
+            test_epoch_mae = []
+
+            for step in range(int(len(X_test_all) / args.batch_size)):
+                Xtest, ytest = X_test_all[step * args.batch_size:(step + 1) * args.batch_size, :, :], \
+                               Y_test_all[step * args.batch_size:(step + 1) * args.batch_size, :]
+
+                Xtest_tensor = torch.from_numpy(Xtest.astype(float)).float().to(device)
+                ytest_tensor = torch.from_numpy(ytest.astype(float)).float().to(device)
+                
+                yPred_test = model(Xtest_tensor)
+
+                test_epoch_loss.append(mse(yPred_test, ytest_tensor).item())
+                yPred_test = yPred_test.cpu().numpy()
+
+                if yscaler is not None:
+                    yPred_test = yscaler.inverse_transform(yPred_test)
+
+                test_epoch_mse.append(((ytest.reshape(-1) - yPred_test.reshape(-1)) ** 2).mean())
+                test_epoch_mae.append(np.abs(ytest.reshape(-1) - yPred_test.reshape(-1)).mean())
+
+            if epoch % 10 == 0:
+                print('The Test MSE Loss is {}'.format(np.average(test_epoch_loss)))
+                print('The Mean Squared Error of forecasts is {} (raw)'.format(np.average(test_epoch_mse)))
+                print('The Mean Absolute Error of forecasts is {} (raw)'.format(np.average(test_epoch_mae)))
+
 
     model = model.cpu()
     if args.save_model:
@@ -231,8 +296,8 @@ def train(X, y, args):
         model = pickle.load(open("transformer_11092318.pkl", 'rb'))
 
     # test
-    X_test = Xte[:, -pre_seq_len - num_obs_to_train:-pre_seq_len, :].reshape((num_ts, -1, num_features))
-    y_test = yte[:, -pre_seq_len:].reshape((num_ts, -1))
+    # X_test = Xte[:, -pre_seq_len - num_obs_to_train:, :].reshape((num_ts, -1, num_features))
+    # y_test = yte[:, -pre_seq_len:].reshape((num_ts, -1))
 
     # test_sample = np.random.choice(range(len(X_test)), 100, replace=False)
     # X_test = X_test[test_sample]
@@ -240,25 +305,15 @@ def train(X, y, args):
 
     # if yscaler is not None:
     #     y_test = yscaler.transform(y_test)
-    X_test = torch.from_numpy(X_test.astype(float)).float()
-    y_test = torch.from_numpy(y_test.astype(float)).float()
-
-    y_pred_t = model(X_test)
-    y_pred_t = y_pred_t.data.numpy()
-    if yscaler is not None:
-        y_pred_t = yscaler.inverse_transform(y_pred_t)
-
-    print('The Mean Squared Error of forecasts is {}'.format(
-        ((np.array(y_pred_t).reshape(-1) - np.array(y_test).reshape(-1)) ** 2).mean()))
-    print('The Mean Absolute Error of forecasts is {}'.format(np.abs(np.array(y_pred_t).reshape(-1) - np.array(y_test).reshape(-1)).mean()))
+    
 
     if args.show_plot:
         draw_id = np.random.randint(0, 100, 1)
         plt.figure(figsize=(20, 5))
 
-        plt.plot(range(args.num_obs_to_train + y_test[draw_id].shape[1]),
-                 np.concatenate((X_test[draw_id, :, 0].squeeze(0), y_test[draw_id].squeeze(0))), label="true")
-        plt.plot(range(args.num_obs_to_train, args.num_obs_to_train + y_pred_t[draw_id].shape[1]), y_pred_t[draw_id].squeeze(0),
+        plt.plot(range(args.enc_seq_len + y_test[draw_id].shape[1]),
+                 (X_test[draw_id, :, 0].squeeze(0)), label="true")
+        plt.plot(range(args.enc_seq_len, args.enc_seq_len + y_pred_t[draw_id].shape[1]), y_pred_t[draw_id].squeeze(0),
                  label="forecast", color='r')
         # plt.plot(range(args.num_obs_to_train, args.num_obs_to_train + y_test[draw_id].shape[1]), ,
         #          label="true_future")
@@ -308,7 +363,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--standard_scaler", "-ss", action="store_true")
     parser.add_argument("--log_scaler", "-ls", action="store_true")
-    parser.add_argument("--mean_scaler", "-ms", action="store_true", default=True)
+    parser.add_argument("--mean_scaler", "-ms", action="store_true")
+    parser.add_argument("--minmax_scaler", "-mm", action="store_true", default=True)
 
     parser.add_argument("--num_epoches", "-e", type=int, default=200)
     parser.add_argument("--step_per_epoch", "-spe", type=int, default=3)
@@ -320,16 +376,16 @@ if __name__ == "__main__":
     parser.add_argument("--d_model", "-dm", type=int, default=128)  # 嵌入维度
     parser.add_argument("--nhead", "-nh", type=int, default=8)  # 注意力头数量
     parser.add_argument("--dim_feedforward", "-hs", type=int, default=256)
-    parser.add_argument("--dec_seq_len", "-dl", type=int, default=24)  # decoder用到的输入长度
+    parser.add_argument("--dec_seq_len", "-dl", type=int, default=12)  # decoder用到的输入长度
     parser.add_argument("--out_seq_len", "-ol", type=int, default=24)  # 预测长度
-    parser.add_argument("--num_obs_to_train", "-not", type=int, default=24*2)  # 输入训练长度
+    parser.add_argument("--enc_seq_len", "-not", type=int, default=24*2)  # 输入训练长度
     parser.add_argument("-dropout", type=float, default=0.1)
     parser.add_argument("-activation", type=str, default='relu')
 
     parser.add_argument("--run_test", "-rt", action="store_true", default=True)
     parser.add_argument("--save_model", "-sm", type=bool, default=False)
     parser.add_argument("--load_model", "-lm", type=bool, default=False)
-    parser.add_argument("--show_plot", "-sp", type=bool, default=True)
+    parser.add_argument("--show_plot", "-sp", type=bool, default=False)
 
     parser.add_argument("--day_periods", "-dp", type=int, default=288)
     parser.add_argument("--num_periods", "-np", type=int, default=24)
