@@ -15,12 +15,13 @@ MinMax = preprocessing.MinMaxScaler()
 StdScaler = preprocessing.StandardScaler()
 
 
-Task_ID_Dict = pickle.load(open(r"C:\Users\Hsy\Desktop\WWW_master\raw_data\Task_ID_Dict.pkl", 'rb'))
+Task_ID_Dict = pickle.load(open(r"C:\Users\Admin\Desktop\WWW_master\raw_data\Task_ID_Dict.pkl", 'rb'))
 
 
 def train_test_split(X, y, train_ratio=0.7):
     num_ts, num_periods, num_features = X.shape
-    train_periods = int(num_periods * train_ratio)
+    # train_periods = int(num_periods * train_ratio)
+    train_periods = int(24 * 25)
     random.seed(2)
     Xtr = X[:, :train_periods, :]
     ytr = y[:, :train_periods]
@@ -54,6 +55,20 @@ class MaxScaler:
 
     def transform(self, y):
         return y / self.max
+
+
+class MinMaxScaler:
+
+    def fit_transform(self, y):
+        self.max = np.max(y)
+        self.min = np.min(y)
+        return (y - self.min) / (self.max - self.min)
+
+    def inverse_transform(self, y):
+        return y * (self.max - self.min) + self.min
+
+    def transform(self, y):
+        return (y - self.min) / (self.max - self.min)
 
 
 class MeanScaler:
