@@ -1,10 +1,13 @@
+import matplotlib.pyplot as plt
+import numpy as np
 from torch import nn
 import argparse
 import math
-from custom_transformer_token import Transformer
+from tsfr_token_globalP import Transformer
 
 import sys
 sys.path.append('../')
+sys.path.append('../VaDE_pytorch_master')  # 添加路径以找到类
 
 from data_process_utils import *
 from global_utils import *
@@ -192,6 +195,14 @@ def train(X, y, args):
     device = torch.device('cuda:0')
 
     num_ts, num_periods, num_features = X.shape
+    with open(r'global_pool_trend150_sea150_series_minmax.pkl', 'rb') as f:
+        timeFeature_pool = pickle.load(f)
+    sFeature = torch.tensor(np.stack(timeFeature_pool.seasonal_pool).T).to(device)
+    tFeature = torch.tensor(np.stack(timeFeature_pool.trend_pool).T).to(device)
+    stFeature = torch.concat((sFeature, tFeature), dim=1)
+
+    timeFeature = sFeature
+    timeFeature_len = timeFeature.shape[-1]
     # model = TransformerTS(num_features,
     #                       args.dec_seq_len,
     #                       args.out_seq_len,
@@ -217,8 +228,7 @@ def train(X, y, args):
     Xtr, ytr, Xte, yte = train_test_split(X, y, train_ratio=0.8)
 
     losses = []
-    test_mse = []
-    test_mae = []
+    test_losses = []
     mse = nn.MSELoss().to(device)
     cnt = 0
 
@@ -243,6 +253,7 @@ def train(X, y, args):
     # training
     for epoch in tqdm(range(args.num_epoches)):
         # print("Epoch {} starts...".format(epoch))
+        train_epoch_loss = []
         for step in range(int(len(X_train_all)/args.batch_size)):
             # Xtrain, ytrain = batch_generator(Xtr, ytr, num_obs_to_train, pre_seq_len, args.batch_size)
             Xtrain, ytrain = X_train_all[step*args.batch_size:(step+1)*args.batch_size, :, :], \
@@ -250,15 +261,16 @@ def train(X, y, args):
             Xtrain_tensor = torch.from_numpy(Xtrain.astype(float)).float().to(device)
             ytrain_tensor = torch.from_numpy(ytrain.astype(float)).float().to(device)
 
-            ypred = model(Xtrain_tensor)
+            ypred = model(Xtrain_tensor, sFeature)
             loss = mse(ypred, ytrain_tensor)
-            if (epoch % 10 == 0 and step == 0):
-                print('The Train MSE Loss {}'.format(loss.item()))
-            losses.append(loss.item())
+            train_epoch_loss.append(loss.item())
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
             cnt += 1
+
+        losses.append(np.average(train_epoch_loss))
+        print('The Train MSE Loss {}'.format(np.average(train_epoch_loss)))
 
         with torch.no_grad():
             test_epoch_loss = []
@@ -272,9 +284,9 @@ def train(X, y, args):
                 Xtest_tensor = torch.from_numpy(Xtest.astype(float)).float().to(device)
                 ytest_tensor = torch.from_numpy(ytest.astype(float)).float().to(device)
                 
-                yPred_test = model(Xtest_tensor)
+                yPred_test = model(Xtest_tensor, sFeature)
 
-                test_epoch_loss.append(mse(yPred_test, ytest_tensor).item())
+                test_epoch_loss.append(mse(yPred_test, yscaler.transform(ytest_tensor)).item())
                 yPred_test = yPred_test.cpu().numpy()
 
                 if yscaler is not None:
@@ -283,11 +295,11 @@ def train(X, y, args):
                 test_epoch_mse.append(((ytest.reshape(-1) - yPred_test.reshape(-1)) ** 2).mean())
                 test_epoch_mae.append(np.abs(ytest.reshape(-1) - yPred_test.reshape(-1)).mean())
 
+            test_losses.append(np.average(test_epoch_loss))
             if epoch % 10 == 0:
                 print('The Test MSE Loss is {}'.format(np.average(test_epoch_loss)))
                 print('The Mean Squared Error of forecasts is {} (raw)'.format(np.average(test_epoch_mse)))
                 print('The Mean Absolute Error of forecasts is {} (raw)'.format(np.average(test_epoch_mae)))
-
 
     model = model.cpu()
     if args.save_model:
@@ -295,37 +307,8 @@ def train(X, y, args):
     if args.load_model:
         model = pickle.load(open("transformer_11092318.pkl", 'rb'))
 
-    # test
-    # X_test = Xte[:, -pre_seq_len - num_obs_to_train:, :].reshape((num_ts, -1, num_features))
-    # y_test = yte[:, -pre_seq_len:].reshape((num_ts, -1))
+    return losses, test_losses
 
-    # test_sample = np.random.choice(range(len(X_test)), 100, replace=False)
-    # X_test = X_test[test_sample]
-    # y_test = y_test[test_sample]
-
-    # if yscaler is not None:
-    #     y_test = yscaler.transform(y_test)
-    
-
-    if args.show_plot:
-        draw_id = np.random.randint(0, 100, 1)
-        plt.figure(figsize=(20, 5))
-
-        plt.plot(range(args.enc_seq_len + y_test[draw_id].shape[1]),
-                 (X_test[draw_id, :, 0].squeeze(0)), label="true")
-        plt.plot(range(args.enc_seq_len, args.enc_seq_len + y_pred_t[draw_id].shape[1]), y_pred_t[draw_id].squeeze(0),
-                 label="forecast", color='r')
-        # plt.plot(range(args.num_obs_to_train, args.num_obs_to_train + y_test[draw_id].shape[1]), ,
-        #          label="true_future")
-
-        plt.title('Prediction Value')
-        plt.legend(loc="upper left")
-        ymin, ymax = plt.ylim()
-        plt.ylim(ymin, ymax)
-        plt.xlabel("Periods")
-        plt.ylabel("Y")
-        plt.show()
-    return losses
 # if __name__ == "__main__":
 #     import torch
 #     src = torch.rand(
@@ -366,7 +349,7 @@ if __name__ == "__main__":
     parser.add_argument("--mean_scaler", "-ms", action="store_true")
     parser.add_argument("--minmax_scaler", "-mm", action="store_true", default=True)
 
-    parser.add_argument("--num_epoches", "-e", type=int, default=200)
+    parser.add_argument("--num_epoches", "-e", type=int, default=300)
     parser.add_argument("--step_per_epoch", "-spe", type=int, default=3)
     parser.add_argument("-lr", type=float, default=1e-4)
     parser.add_argument("--batch_size", "-b", type=int, default=256)
@@ -385,7 +368,7 @@ if __name__ == "__main__":
     parser.add_argument("--run_test", "-rt", action="store_true", default=True)
     parser.add_argument("--save_model", "-sm", type=bool, default=False)
     parser.add_argument("--load_model", "-lm", type=bool, default=False)
-    parser.add_argument("--show_plot", "-sp", type=bool, default=False)
+    parser.add_argument("--show_plot", "-sp", type=bool, default=True)
 
     parser.add_argument("--day_periods", "-dp", type=int, default=288)
     parser.add_argument("--num_periods", "-np", type=int, default=24)
@@ -447,10 +430,13 @@ if __name__ == "__main__":
         # y_all = np.asarray(y_all).reshape((-1, args.num_periods*30))
         X_all = pickle.load(open(get_data_path("X_all_0801_0830.pkl"), 'rb'))
         y_all = pickle.load(open(get_data_path("y_all_0801_0830.pkl"), 'rb'))
-        losses = train(X_all, y_all, args)
+        losses, test_losses = train(X_all, y_all, args)
         # pickle.dump(losses, open("losses_{}.pkl".format(time.strftime("%m%d%H%M", time.localtime())), 'wb'))
         if args.show_plot:
-            plt.plot(range(len(losses)), losses, "k-")
+            plt.plot(losses, "k-", label='train loss')
+            plt.plot(test_losses, label='test loss')
             plt.xlabel("Period")
             plt.ylabel("Loss")
+            plt.legend()
+            plt.title('train and test loss')
             plt.show()

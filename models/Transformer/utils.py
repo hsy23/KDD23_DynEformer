@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 import math
+import matplotlib.pyplot as plt
 
 
 def a_norm(Q, K):
@@ -135,3 +136,24 @@ def get_data(batch_size, input_sequence_length, output_sequence_length):
 
     s = torch.sigmoid(b.float())
     return s[:, :input_sequence_length].unsqueeze(-1), s[:, -output_sequence_length:]
+
+
+def draw_pre_example(X_test_all, ):
+    np.random.seed(2)
+
+    draw_id = np.random.randint(0, 100, 1)
+    plt.figure(figsize=(20, 5))
+
+    plt.plot(len(X_test_all[draw_id, :, 0]), X_test_all[draw_id, :, 0].squeeze(0), label="true")
+    plt.plot(range(args.enc_seq_len, args.enc_seq_len + y_pred_t[draw_id].shape[1]), y_pred_t[draw_id].squeeze(0),
+             label="forecast", color='r')
+    # plt.plot(range(args.num_obs_to_train, args.num_obs_to_train + y_test[draw_id].shape[1]), ,
+    #          label="true_future")
+
+    plt.title('Prediction Value')
+    plt.legend(loc="upper left")
+    ymin, ymax = plt.ylim()
+    plt.ylim(ymin, ymax)
+    plt.xlabel("Periods")
+    plt.ylabel("Y")
+    plt.show()
