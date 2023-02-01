@@ -12,7 +12,7 @@ opt_file = 'secret keys.txt'
 with open(opt_file, 'r') as f:
     acc_id, acc_key = f.readline().split(',')
 # file_handle = open('ods_device.txt', mode='w')
-o = ODPS(acc_id, acc_key, 'ppio_env_test', 'http://service.odps.aliyun.com/api')
+o = ODPS(acc_id, acc_key, 'xxx', 'xxx')
 
 
 def fetch(begin_date, end_date, save=True):
