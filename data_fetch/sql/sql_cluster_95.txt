@@ -1,4 +1,0 @@
-SELECT machine_id, bw_upload_95, bw_real_upload2_95, dt
-FROM t_ads_machine_95net_info
-WHERE dt in {}
-;

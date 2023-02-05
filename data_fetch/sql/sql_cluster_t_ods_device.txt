@@ -1,8 +1,0 @@
-SELECT device_uuid, specific_tasks, location_, province, bandwidth_type, nat_type, isp, upbandwidth, upbandwidth_perline, upbandwidth_base, avg_test_upbandwidth, avg_test_upbandwidthwith_tcp, cpu_num, memory_size, disk_size, disk_info_v2, billing_rule, avg_IOPS_per_line, dbtr_tcp_retransmission_ratio,dt
--- 设备id，任务，位置（省份+城市），省份，资源类型（专线、汇聚），NAT类型（公网，内网），上报带宽（B），上报带宽(单条), 修正带宽（用于计算利用率），压测带宽（用于计算压测满意度）CPU数量，内存大小（B），硬盘存储大小(B)，硬盘信息，计费规则，TCP重传率，时间
-FROM ppio_env_test.t_ods_device
-WHERE dt in {}  --获取多天数据
-AND online = 'online'
--- AND state = 'billing'
-;
-

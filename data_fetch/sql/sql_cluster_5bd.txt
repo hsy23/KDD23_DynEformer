@@ -1,7 +1,0 @@
-SELECT machine_id, name, bw_upload, bw_download, time_id, dt
-FROM ppio_env_test.ppio_env_test.dwd_docker_bw_summary
-WHERE dt in {}
-AND state = 'billing'
-{mac_limit}AND machine_id = {mac_id}
-{num_limit}LIMIT 100
-;
