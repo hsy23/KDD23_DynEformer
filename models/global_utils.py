@@ -18,15 +18,17 @@ StdScaler = preprocessing.StandardScaler()
 Task_ID_Dict = pickle.load(open(r"C:\Users\Admin\Desktop\WWW_master\raw_data\Task_ID_Dict.pkl", 'rb'))
 
 
-def train_test_split(X, y, train_ratio=0.7):
+def train_test_split(X, y, train_ratio=0.6, test_ratio=0.2):
     num_ts, num_periods, num_features = X.shape
     # train_periods = int(num_periods * train_ratio)
-    train_periods = int(24 * 25)
+    train_periods = int(len(num_periods) * train_ratio)
+    test_periods = int(len(num_periods) * test_ratio)
+
     random.seed(2)
     Xtr = X[:, :train_periods, :]
     ytr = y[:, :train_periods]
-    Xte = X[:, train_periods:, :]
-    yte = y[:, train_periods:]
+    Xte = X[:, -test_periods:, :]
+    yte = y[:, -test_periods:]
     return Xtr, ytr, Xte, yte
 
 

@@ -14,6 +14,8 @@ import warnings
 import matplotlib.pyplot as plt
 import numpy as np
 
+from global_utils import train_test_split
+
 warnings.filterwarnings('ignore')
 parser = argparse.ArgumentParser(description='Autoformer & Transformer family for Time Series Forecasting')
 
@@ -126,16 +128,7 @@ class PPIO_Dataset(Dataset):
         return self.X[index], self.Y[index], self.X_mark[index], self.Y_mark[index]
 
 
-def train_test_split(X, y):
-    train_periods = int(24 * 25)
-    Xtr = X[:, :train_periods, :]
-    ytr = y[:, :train_periods]
-    Xte = X[:, train_periods:, :]
-    yte = y[:, train_periods:]
-    return Xtr, ytr, Xte, yte
-
-
-def get_ppio(batch_size = 256):
+def get_ppio(batch_size=256):
     X = np.load(open('X_all_0801_0830.npy', 'rb'), allow_pickle=True)
     y = np.load(open('y_all_0801_0830.npy', 'rb'), allow_pickle=True)
 
