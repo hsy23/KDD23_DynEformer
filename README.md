@@ -3,7 +3,7 @@
 ![](https://img.shields.io/badge/Pytorch-red.svg)
 ![](https://img.shields.io/badge/license-brightgreen.svg)
 
-This is the origin Pytorch implementation of DynEformer in the following paper: One for All: UnifiedWorkload Prediction for Dynamic Multi-tenant Edge Cloud Platforms.
+This is the origin Pytorch implementation of DynEformer in the following paper: [One for All: UnifiedWorkload Prediction for Dynamic Multi-tenant Edge Cloud Platforms.](https://arxiv.org/abs/2306.01507)
 
 🚩News(May 31, 2023): We will soon release an updated mechanism for global pooling.
 
