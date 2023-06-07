@@ -39,25 +39,3 @@ class global_pool():
                 pass
         self.seasonal_pool = np.asarray(self.seasonal_pool)
 
-
-# trend_cluster_res = pkl.load(open("trend_cluster_res", 'rb'))
-# seasonal_cluster_res = pkl.load(open("seasonal_cluster_res", 'rb'))
-#
-# trends = pkl.load(open('../../../raw_data/X_0801_0830_trend.pkl', 'rb'))
-# seasonals = pkl.load(open('../../../raw_data/X_0801_0830_seasonal.pkl', 'rb'))
-#
-# S_trend, _ = get_pworkload_all(trends, trends, std='minmax')
-# S_trend = np.asarray(S_trend)
-#
-# S_sea, _ = get_pworkload_all(seasonals, seasonals, std='minmax')
-# S_sea = np.asarray(S_sea)
-#
-# cluster_num = 150
-# global_pool_ = global_pool(cluster_num, cluster_num)
-# global_pool_.build_pool_trend(S_trend, trend_cluster_res)
-# global_pool_.build_pool_seasonal(S_sea, seasonal_cluster_res)
-#
-# pkl.dump(global_pool_, open('global_pool_trend{}_sea{}_series_minmax.pkl'.format(cluster_num, cluster_num), 'wb'))
-# gp = pkl.load(open('global_pool_trend{}_sea{}_series_minmax.pkl'.format(150, 150), 'rb'))
-# pass
-

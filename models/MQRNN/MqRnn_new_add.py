@@ -60,8 +60,7 @@ def batch_generator_all(X, Y, num_obs_to_train, seq_len):
     return X_train_all, Y_train_all, Xf_all, Yf_all
 
 
-def reference(X, y, args):
-    # model = pickle.load(open("MQRNN_01121546.pkl", 'rb'))
+def inference(X, y, args):
     model = torch.load('MQRNN_ppio_best.pt')
     device = torch.device('cuda:0')
 
@@ -106,15 +105,9 @@ def reference(X, y, args):
         test_epoch_mse.append(((ypred.reshape(-1) - Yf_t_all.reshape(-1)) ** 2).mean())
         test_epoch_mae.append(np.abs(ypred.reshape(-1) - Yf_t_all.reshape(-1)).mean())
 
-        # pickle.dump([ypred, Yf_t_all], open('../../draw_pics/draw_new/mqrnn_newapp_plot.pkl', 'wb'))
-
         print('The Test MSE Loss is {}'.format(np.average(test_epoch_loss)))
         print('The Mean Squared Error of forecasts is {} (raw)'.format(np.average(test_epoch_mse)))
         print('The Mean Absolute Error of forecasts is {} (raw)'.format(np.average(test_epoch_mae)))
-
-        # if args.show_plot:
-        #     for p_id in range(72):
-        #         draw_true_pre_compare_normal(Y_test_all[p_id], ypred[p_id], Yf_t_all[p_id], p_id)
 
 
 if __name__ == "__main__":
@@ -140,6 +133,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.run_test:
-        X_all = pickle.load(open(get_data_path("X_newapp.pkl"), 'rb'))
-        y_all = pickle.load(open(get_data_path("y_newapp.pkl"), 'rb'))
-        reference(X_all[:, :, 1:4], y_all, args)
+        X_all = pickle.load(open(r"../../data/ECW_newapp.pkl", 'rb'))
+        y_all = X_all[:, :, 0]
+        X_all = X_all[:, :, 1:4]
+        losses, test_losses = inference(X_all, y_all, args)

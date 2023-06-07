@@ -89,100 +89,76 @@ class VaDE(nn.Module):
         self.Y = None
 
     def pre_train(self, pre_epoch=10):
-        if not os.path.exists('./pretrain_model_nc5'):
-            Loss = nn.MSELoss()
-            opti = Adam(itertools.chain(self.encoder.parameters(), self.decoder.parameters()), lr=1e-3)
+        Loss = nn.MSELoss()
+        opti = Adam(itertools.chain(self.encoder.parameters(), self.decoder.parameters()), lr=1e-3)
 
-            print('Pretraining......')
-            epoch_bar = tqdm(range(pre_epoch))
-            _, X_train_all, _ = get_pworkload(self.X, self.Y, std='minmax', series_len=self.args.series_len, step=self.args.step, batch_size=self.args.batch_size)
-            for i in epoch_bar:
-                L = 0
-                #for x in x_all:
-                if self.args.cuda:
-                    x = X_train_all.cuda()
+        print('Pretraining......')
+        epoch_bar = tqdm(range(pre_epoch))
+        _, X_train_all, _ = get_pworkload(self.X, self.Y, std='minmax', series_len=self.args.series_len, step=self.args.step, batch_size=self.args.batch_size)
+        for i in epoch_bar:
+            L = 0
+            #for x in x_all:
+            if self.args.cuda:
+                x = X_train_all.cuda()
 
-                z, _ = self.encoder(x)
-                x_ = self.decoder(z)
-                # if i % 100 == 0:
-                #     tmp_x = x.detach().cpu().numpy()
-                #     tmpx_ = x_.detach().cpu().numpy()
-                #     fig = plt.figure()
-                #     m_id = np.random.randint(0, len(tmp_x), 1)
-                #     plt.plot(tmp_x[m_id[0]], label='origin')
-                #     plt.plot(tmpx_[m_id[0]], label='pre')
-                #     plt.legend()
-                #     plt.show()
+            z, _ = self.encoder(x)
+            x_ = self.decoder(z)
 
-                loss = Loss(x, x_)
-                L = loss.detach().cpu().numpy()
+            loss = Loss(x, x_)
+            L = loss.detach().cpu().numpy()
 
-                opti.zero_grad()
-                loss.backward()
-                opti.step()
+            opti.zero_grad()
+            loss.backward()
+            opti.step()
 
-                epoch_bar.write('L2={:.4f}'.format(L))
+            epoch_bar.write('L2={:.4f}'.format(L))
 
-            self.encoder.log_sigma2_l.load_state_dict(self.encoder.mu_l.state_dict())
+        self.encoder.log_sigma2_l.load_state_dict(self.encoder.mu_l.state_dict())
 
-            Z = []
-            Y = []
-            with torch.no_grad():
-                # for x in x_all:
-                if self.args.cuda:
-                    x = X_train_all.cuda()
+        Z = []
+        Y = []
+        with torch.no_grad():
+            # for x in x_all:
+            if self.args.cuda:
+                x = X_train_all.cuda()
 
-                z1, z2 = self.encoder(x)
-                assert F.mse_loss(z1, z2) == 0
-                Z.append(z1)
-                # Y.append(y)
+            z1, z2 = self.encoder(x)
+            assert F.mse_loss(z1, z2) == 0
+            Z.append(z1)
+            # Y.append(y)
 
-            Z = torch.cat(Z, 0).detach().cpu().numpy()  # 将列表合成一个tensor
-            min_bic = 1e10
-            best_gmm =None
-            best_n = 0
-            # Y = torch.cat(Y, 0).detach().numpy()
+        Z = torch.cat(Z, 0).detach().cpu().numpy()  # 将列表合成一个tensor
+        min_bic = 1e10
+        best_gmm =None
+        best_n = 0
+        # Y = torch.cat(Y, 0).detach().numpy()
 
-            # aic_l = []
-            # bic_l = []
-            # for n_c in tqdm(range(1, 650, 50)):
-            #     gmm = GaussianMixture(n_components=n_c, covariance_type='diag')
-            #     try:
-            #         gmm_model = gmm.fit(Z.reshape(-1, 10))
-            #     except:
-            #         pass
-            #     if gmm_model.bic(Z.reshape(-1, 10)) < min_bic:
-            #         min_bic = gmm_model.bic(Z.reshape(-1, 10))
-            #         best_gmm = gmm_model
-            #         best_n = n_c
-            #     # print('aic:', gmm_model.aic(Z.reshape(-1, 10)))
-            #     aic_l.append(gmm_model.aic(Z.reshape(-1, 10)))
-            #     bic_l.append(gmm_model.bic(Z.reshape(-1, 10)))
-            #
-            # pickle.dump(aic_l, open('./seasonal_aic_l.pkl', 'wb'))
-            # pickle.dump(bic_l, open('./seasonal_bic_l.pkl', 'wb'))
-            # plt.plot(aic_l, label='aic')
-            # plt.plot(bic_l, label='bic')
-            # plt.xlabel('n_clusters')
-            # plt.ylabel('bic')
-            # plt.xticks(range(len(bic_l)), labels=range(1, 650, 50))
-            # plt.title('seasonal clusters valuation')
-            # plt.show()
-            # print('best n:', best_n)
-            # print('Acc={:.4f}%'.format(cluster_acc(pre, Y)[0] * 100))
-            for cn in tqdm(range(100, 650, 100)):
-                gmm = GaussianMixture(n_components=cn, covariance_type='diag')
-                gmm_model = gmm.fit(Z.reshape(-1, 10))
-                best_gmm = gmm_model
-                pre_res = best_gmm.predict(Z.reshape(-1, 10))
-                self.pi_.data = torch.from_numpy(best_gmm.weights_).cuda().float()
-                self.mu_c.data = torch.from_numpy(best_gmm.means_).cuda().float()
-                self.log_sigma2_c.data = torch.log(torch.from_numpy(best_gmm.covariances_).cuda().float())
-                # torch.save(self.state_dict(), './pretrain_model_nc{}.pkl'.format(self.args.nClusters))
-                pickle.dump(pre_res, open(r'ns_cluster_res_n{}_s{}_s{}'.format(cn, self.args.series_len, self.args.step), 'wb'))
-            return best_n
-        # else:
-        #     self.load_state_dict(torch.load('./pretrain_model_nc5.pkl'))
+        # aic_l = []
+        # bic_l = []
+        # for n_c in tqdm(range(1, 650, 50)):
+        #     gmm = GaussianMixture(n_components=n_c, covariance_type='diag')
+        #     try:
+        #         gmm_model = gmm.fit(Z.reshape(-1, 10))
+        #     except:
+        #         pass
+        #     if gmm_model.bic(Z.reshape(-1, 10)) < min_bic:
+        #         min_bic = gmm_model.bic(Z.reshape(-1, 10))
+        #         best_gmm = gmm_model
+        #         best_n = n_c
+        #     # print('aic:', gmm_model.aic(Z.reshape(-1, 10)))
+        #     aic_l.append(gmm_model.aic(Z.reshape(-1, 10)))
+        #     bic_l.append(gmm_model.bic(Z.reshape(-1, 10)))
+
+        for cn in tqdm(range(100, 650, 100)):
+            gmm = GaussianMixture(n_components=cn, covariance_type='diag')
+            gmm_model = gmm.fit(Z.reshape(-1, 10))
+            best_gmm = gmm_model
+            pre_res = best_gmm.predict(Z.reshape(-1, 10))
+            self.pi_.data = torch.from_numpy(best_gmm.weights_).cuda().float()
+            self.mu_c.data = torch.from_numpy(best_gmm.means_).cuda().float()
+            self.log_sigma2_c.data = torch.log(torch.from_numpy(best_gmm.covariances_).cuda().float())
+        return best_n
+
 
     def predict(self, x):
         _, X_test_all, y_test_all = get_pworkload(x, None, wtype='test', std='minmax',

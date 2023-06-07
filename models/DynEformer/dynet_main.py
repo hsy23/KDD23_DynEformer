@@ -49,17 +49,13 @@ class PPIO_Dataset(Dataset):
         num_ts, num_periods, num_features = X.shape
         sq_len = enc_len + pred_len
         X_train_all = []
-        Y_train_all = []
         X.astype(float)
 
         for i in range(num_ts):
             for j in range(sq_len, num_periods, 12):
                 X_train_all.append(X[i, j - sq_len:j, :])
-                # Y_train_all.append(Y[i, j - pred_len:j])
 
         self.X = np.stack(X_train_all).reshape(-1, sq_len, num_features)
-        # self.Y = np.stack(Y_train_all).reshape(-1, pred_len)
-        # self.Y = np.asarray(X[:,:,0]).reshape(-1, sq_len)
 
     def __len__(self):
         return self.X.shape[0]
@@ -69,7 +65,6 @@ class PPIO_Dataset(Dataset):
 
 
 def train(X, y, args):
-    print("GPSformer")
     device = torch.device('cuda:0')
     input_size = 4
     cn = 551
@@ -160,7 +155,7 @@ def train(X, y, args):
             if test_loss[-1] < min_loss:
                 best_model = model
                 min_loss = test_loss[-1]
-                torch.save(model, 'saved_model/DynEformer_ppio_best_n{}.pt'.format(cn))
+                torch.save(model, 'saved_model/DynEformer_best_n{}.pt'.format(cn))
 
         print(f'epoch {epoch}, train loss: {losses[-1]}, test loss: {test_loss[-1]}, mse: {test_mse[-1]}, mae: {test_mae[-1]}')
     print(np.min(test_mse), np.min(test_mae), np.argmin(test_mse))
@@ -203,6 +198,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.run_test:
-        X_all = np.load(open(r"../../../raw_data/X_all_0801_0830.npy", 'rb'), allow_pickle=True)
-        y_all = np.load(open(r"../../../raw_data/y_all_0801_0830.npy", 'rb'), allow_pickle=True)
+        X_all = np.load(open(r"../../data/ECW_08.npy", 'rb'), allow_pickle=True)
+        y_all = X_all[:, :, 0]
         losses, test_losses, mse_l, mae_l = train(X_all, y_all, args)

@@ -5,7 +5,6 @@ import numpy as np
 
 
 class Decoder(nn.Module):
-
     def __init__(
             self,
             input_size,

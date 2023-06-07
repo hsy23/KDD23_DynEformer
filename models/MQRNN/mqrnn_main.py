@@ -76,9 +76,6 @@ def train(X, y, args, quantiles):
 
     yscaler = MinMaxScaler()
     ytr = yscaler.fit_transform(ytr)
-    # yte = yscaler.fit_transform(yte)
-
-    # pickle.dump(yscaler, open('8_scalers_new.pkl', 'wb'))
 
     num_obs_to_train = args.num_obs_to_train
     seq_len = args.seq_len
@@ -143,12 +140,6 @@ def train(X, y, args, quantiles):
             test_losses.append(np.average(test_epoch_loss))
             print('loss:{}, test Loss:{}, mse:{}, mae:{}'.format(losses[-1], test_losses[-1],
                                                                  np.average(test_epoch_mse), np.average(test_epoch_mae)))
-        if args.save_model:
-            if test_losses[-1] < min_loss:
-                best_model = model
-                min_loss = test_losses[-1]
-                torch.save(model, 'MQRNN_ppio_best.pt')
-
     return losses, test_losses
 
 
@@ -174,14 +165,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.run_test:
-        X_all = np.load(open(r"../../../raw_data/X_all_0801_0830.npy", 'rb'), allow_pickle=True)
-        y_all = np.load(open(r"../../../raw_data/y_all_0801_0830.npy", 'rb'), allow_pickle=True)
+        X_all = np.load(open(r"../../data/ECW_08.npy", 'rb'), allow_pickle=True)
+        y_all = X_all[:, :, 0]
         X_all = X_all[:, :, 1:4]
         quantiles = [0.1, 0.5, 0.9]
         losses, test_losses = train(X_all, y_all, args, quantiles)
-
-        # if args.show_plot:
-        #     plt.plot(range(len(losses)), losses, "k-")
-        #     plt.xlabel("Period")
-        #     plt.ylabel("Loss")
-        #     plt.show()

@@ -30,7 +30,6 @@ if __name__ == '__main__':
     parse = argparse.ArgumentParser(description='VaDE')
     parse.add_argument('--batch_size', type=int, default=40000)
     parse.add_argument('--dataX_dir', type=str, default='../../../../raw_data/X_all_0801_0830.pkl')
-    parse.add_argument('--dataY_dir', type=str, default='../../../raw_data/y_all_0801_0830.npy')
     parse.add_argument('--nClusters', type=int, default=5)
     parse.add_argument('--step_per_epoch', type=int, default=1000)
 
@@ -60,8 +59,8 @@ if __name__ == '__main__':
     # vade = torch.load(open('c5_vade2.pkl', 'rb'))
 
     x_switch = pickle.load(open('../../../../raw_data/x_switch_0801_0830.pkl', 'rb'))
-    x_mac = pickle.load(open('../../../../raw_data/x_newmac.pkl', 'rb'))
-    x_app = pickle.load(open('../../../../raw_data/x_newapp.pkl', 'rb'))
+    x_mac = pickle.load(open('../../../../raw_data/ECW_newmac.pkl', 'rb'))
+    x_app = pickle.load(open('../../../../raw_data/ECW_newapp.pkl', 'rb'))
     # vade.predict(X[:, 24*25:], 'switch')
     # vade.predict(x_switch, 'switch')
     vade.predict(x_mac, 'mac')

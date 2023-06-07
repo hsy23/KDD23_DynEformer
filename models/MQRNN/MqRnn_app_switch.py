@@ -60,7 +60,7 @@ def batch_generator_all(X, Y, num_obs_to_train, seq_len):
     return X_train_all, Y_train_all, Xf_all, Yf_all
 
 
-def reference(X, y, args):
+def inference(X, y, args):
     model = pickle.load(open("MQRNN_01121546.pkl", 'rb'))
     device = torch.device('cuda:0')
 
@@ -111,10 +111,6 @@ def reference(X, y, args):
         print('The Mean Squared Error of forecasts is {} (raw)'.format(np.average(test_epoch_mse)))
         print('The Mean Absolute Error of forecasts is {} (raw)'.format(np.average(test_epoch_mae)))
 
-        if args.show_plot:
-            for p_id in range(72):
-                draw_true_pre_compare_normal(Y_test_all[p_id], ypred[p_id], Yf_t_all[p_id], p_id)
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -139,42 +135,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.run_test:
-        data_path = get_data_path("merged_0801_0830_bd_t_feats_hour.pkl")
-        data = pd.read_pickle(open(data_path, 'rb'))
-
-        X_all = []
-        y_all = []
-
-        features = ["bw_upload", "hour", "day", "week"]
-        num_feats = len(features)
-
-        changed_macs = ['f3a5b41275eea15fd1386ae999962204',
-                        '203bd15065a33e772cc5bd6c41b6e82e',
-                        '1f77811e2b97f84b209659d3fdffd9f3']
-
-        changed_t_b = ['2022081515', '2022081017', '2022082117']
-        changed_t_e = ['2022082015', '2022081517', '2022082617']
-
-        data = data[data['machine_id'].apply(lambda x: x in changed_macs)]
-
-        for i, j, k in zip(changed_macs, changed_t_b, changed_t_e):
-            s = data[data['machine_id'] == i]
-            s = s[(s['time_id'] >= j) & (s['time_id'] <= k)]
-
-            X = []
-            y = []
-
-            X.append(s[features].values)
-            y.append(s['bw_upload'])
-
-            X = np.asarray(X).reshape((24 * 5, num_feats))  # num_series
-            y = np.asarray(y).reshape((24 * 5))
-
-            X_all.append(X)
-            y_all.append(y)
-
-        X_all = np.asarray(X_all).reshape((-1, 24 * 5, num_feats))
-        y_all = np.asarray(y_all).reshape((-1, 24 * 5))
-        # X_all = pickle.load(open(get_data_path("X_all_0801_0830.pkl"), 'rb'))
-        # y_all = pickle.load(open(get_data_path("y_all_0801_0830.pkl"), 'rb'))
-        reference(X_all[:, :, 1:], y_all, args)
+        X_all = pickle.load(open(r"../../data/ECW_switch.pkl", 'rb'))
+        y_all = X_all[:, :, 0]
+        X_all = X_all[:, :, 1:4]
+        losses, test_losses = inference(X_all, y_all, args)

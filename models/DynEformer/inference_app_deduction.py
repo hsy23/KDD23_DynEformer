@@ -20,7 +20,7 @@ sys.path.append('../GlobalPooing')  # 添加路径以找到类
 
 from data_process_utils import *
 from global_utils import *
-from use_cases import get_app_deduction
+from use_cases_utils import get_app_deduction
 
 
 def get_mape(yTrue, yPred, scaler=None):
@@ -70,8 +70,7 @@ def batch_generator_padding(X, Y, num_obs_to_train, seq_len, step):
 
 
 def inference(X, y, args):
-    # model = pickle.load(open("saved_model/GpsFormer_01141318.pkl", 'rb'))
-    model = torch.load('saved_model/GPS_ppio_best.pt')
+    model = torch.load('saved_model/Dyneformer_best.pt')
     device = torch.device('cuda:0')
 
     num_ts, num_periods, num_features = X.shape
@@ -174,7 +173,7 @@ if __name__ == "__main__":
         mac_attr = pd.read_pickle(open(mac_attr_path, 'rb'))
 
         data_with_mac_feats = mac_attributes_pro(mac_attr, data)
-        data_app = data_with_mac_feats[data_with_mac_feats['task_id'] == 0]  # 0快手 1b站 2腾讯 7虎牙 15字节跳动
+        data_app = data_with_mac_feats[data_with_mac_feats['task_id'] == 0]  # 0:kuaishou 1:bilibili 2tencent 7huya 15zjtd
         data_used = data_app[(data_app['dt']>'20220825') & (data_app['dt']<'20220829')]
 
         X_all = []
@@ -202,7 +201,4 @@ if __name__ == "__main__":
 
         X_all = np.asarray(X_all).reshape((-1, args.num_periods*3, num_feats))
         y_all = np.asarray(y_all).reshape((-1, args.num_periods*3))
-        # pickle.dump([X_all, y_all], open('use_case_data/app5.pkl', 'wb'))
-        # X_all = np.load(open(r"../../../raw_data/X_all_0801_0830.npy", 'rb'), allow_pickle=True)
-        # y_all = np.load(open(r"../../../raw_data/y_all_0801_0830.npy", 'rb'), allow_pickle=True)
         inference(X_all, y_all, args)

@@ -129,8 +129,8 @@ class PPIO_Dataset(Dataset):
 
 
 def get_ppio(batch_size=256):
-    X = np.load(open('X_all_0801_0830.npy', 'rb'), allow_pickle=True)
-    y = np.load(open('y_all_0801_0830.npy', 'rb'), allow_pickle=True)
+    X = np.load(open('ECW_08.npy', 'rb'), allow_pickle=True)
+    y = X[:, :, 0]
 
     Xtr, ytr, Xte, yte = train_test_split(X, y)
     num_ts, num_periods, num_features = Xte.shape
@@ -222,11 +222,6 @@ for epoch in range(epochs):
     test_mse.append(np.mean(epo_mse))
     test_mape.append(np.mean(epo_mape))
     test_mae.append(np.mean(epo_mae))
-    
-    # if epo_test_losses[-1] < min_loss:
-    #     best_model = model
-    #     min_loss = epo_test_losses[-1]
-    #     torch.save(best_model, 'saved_models/informer.pt')
     
     print(f'epoch {epoch}, train loss: {train_loss[-1]}, test loss: {test_loss[-1]}, mse: {test_mse[-1]}, mape: {test_mape[-1]}, mae: {test_mae[-1]}')
 print(np.min(test_mse), np.min(test_mape), np.min(test_mae))

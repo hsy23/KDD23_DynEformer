@@ -28,29 +28,6 @@ class GpLayer(nn.Module):
         return key, out
 
 
-class GpLayer2(nn.Module):  # Todo:1203更改为增加1维的数据 因为都是48的序列长度 直接每个序列增加一维
-    def __init__(self, dim_val, time_feature_len, enc_seq_len):
-        super().__init__()
-        self.dim_val = dim_val
-        half = int(dim_val/2)
-        self.fuse_src = nn.Linear(
-            in_features=enc_seq_len*half,
-            out_features=time_feature_len
-            )
-        self.recover = nn.Linear(
-            in_features=time_feature_len,
-            out_features=half
-        )
-
-    def forward(self, src, timeFeature):
-        half = int(self.dim_val/2)
-        tmp = torch.transpose(src[:, :, half:], 0, 1).flatten(1)
-        key = torch.softmax(self.fuse_src(tmp), 1)
-        fuse = key * timeFeature.unsqueeze(1)
-        out = torch.concat((src[:, :, :half], self.recover(fuse)), dim=-1)
-        return key, out
-
-
 class SaLayer(nn.Module):
     def __init__(self, dim_val, dim_w, dim_static, dropout):
         super().__init__()
@@ -178,8 +155,6 @@ class DynEformer(torch.nn.Module):
             d = dec(d, e)
 
         # output
-        # d = d.transpose(0, 1)  # 交换0/1维度
-        # x = self.out_fc(d.flatten(start_dim=1))
         x = self.out_fc(d)[:, -self.out_seq_len:, :].squeeze(-1)
 
         return x

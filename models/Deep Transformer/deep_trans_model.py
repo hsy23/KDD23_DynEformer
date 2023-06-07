@@ -89,7 +89,7 @@ class Transformer(torch.nn.Module):
             d = dec(d, e)
 
         # output
-        # d = d.transpose(0, 1)  # 交换0/1维度
+        # d = d.transpose(0, 1)  # Swap 0/1 dimension
         x = self.out_fc(d.flatten(start_dim=1))
 
         return x

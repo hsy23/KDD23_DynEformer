@@ -93,10 +93,7 @@ def train(X, y, args):
     Xtr_loader = DataLoader(PPIO_Dataset(Xtr), batch_size=args.batch_size)
     Xte_loader = DataLoader(PPIO_Dataset(Xte), batch_size=args.batch_size)
 
-    # pickle.dump([xscaler, yscaler], open('8_scalers_deeptrans.pkl', 'wb'))
-
-    tr_vm = np.load('../../../raw_data/tr_vm.npy', allow_pickle=True)
-    te_vm = np.load('../../../raw_data/te_vm.npy', allow_pickle=True)
+    pickle.dump([xscaler, yscaler], open('8_scalers_deeptrans.pkl', 'wb'))
 
     losses = []
     test_loss = []
@@ -192,15 +189,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.run_test:
-        X_all = np.load(open(r"../../../raw_data/X_all_0801_0830.npy", 'rb'), allow_pickle=True)
-        y_all = np.load(open(r"../../../raw_data/y_all_0801_0830.npy", 'rb'), allow_pickle=True)
+        X_all = np.load(open(r"../../data/ECW_08.npy", 'rb'), allow_pickle=True)
+        y_all = X_all[:, :, 0]  # the target workload
         losses, test_losses, mse_l, mae_l = train(X_all, y_all, args)
-        # pickle.dump(test_losses, open("GpsFormer_test_losses_{}.pkl".format(time.strftime("%m%d%H%M", time.localtime())), 'wb'))
-        # if args.show_plot:
-        #     plt.plot(losses, "k-", label='train loss')
-        #     plt.plot(test_losses, label='test loss')
-        #     plt.xlabel("Period")
-        #     plt.ylabel("Loss")
-        #     plt.legend()
-        #     plt.title('train and test loss')
-        #     plt.show()

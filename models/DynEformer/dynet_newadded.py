@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from torch import nn
 import argparse
 import math
-from dyneformerV1 import DynEformer
+from dyneformer import DynEformer
 from sklearn import preprocessing
 from tqdm import tqdm
 from torch.optim import Adam
@@ -19,27 +19,6 @@ from data_process_utils import *
 from global_utils import *
 
 from torch.utils.data import DataLoader
-
-
-class PositionalEncoding(nn.Module):
-    def __init__(self, d_model, dropout=0.1, max_len=5000):
-        super(PositionalEncoding, self).__init__()
-
-        pe = torch.zeros(max_len, d_model)
-        position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
-
-        div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model))
-
-        pe[:, 0::2] = torch.sin(position * div_term)
-        pe[:, 1::2] = torch.cos(position * div_term)
-
-        pe = pe.unsqueeze(0).transpose(0, 1)
-
-        self.register_buffer('pe', pe)
-
-    def forward(self, x):
-        x = x + self.pe[:x.size(1), :].squeeze(1)
-        return x
 
 
 def batch_generator_padding(X, Y, num_obs_to_train, seq_len, step):
@@ -65,14 +44,12 @@ def batch_generator_padding(X, Y, num_obs_to_train, seq_len, step):
     return X_all, Y_all
 
 
-
 def reference(X, y, args):
-    # model = pickle.load(open("saved_model/GpsFormer_01141318.pkl", 'rb'))
-    model = torch.load('saved_model/GPS_ppio_best.pt')
+    model = torch.load('saved_model/Dyneformer_best.pt')
     device = torch.device('cuda:0')
 
     num_ts, num_periods, num_features = X.shape
-    input_size = 4  # encoder输入维度 只包括bw和日期mark
+    input_size = 4  # encoder input dimension, only includes bw and date mark
     with open(r'../GlobalPooing/vade_pooling/global_pool_c551_s48_s12.pkl', 'rb') as f:
         timeFeature_pool = pickle.load(f)
     sFeature = torch.tensor(np.stack(timeFeature_pool.seasonal_pool).T).to(device)
@@ -114,18 +91,11 @@ def reference(X, y, args):
 
         test_epoch_mse.append(((ytest.reshape(-1) - yPred_test.reshape(-1)) ** 2).mean())
         test_epoch_mae.append(np.abs(ytest.reshape(-1) - yPred_test.reshape(-1)).mean())
-        # pickle.dump([xscaler.inverse_transform(Xtest.reshape(-1, num_features)).reshape(X_test_all.shape[0], -1, num_features), yPred_test, ytest],
-        #             open('../../draw_pics/draw_new/gpsformer_newapp_plot.pkl', 'wb'))
 
         # print('The Test MSE Loss is {}'.format(np.average(test_epoch_loss)))
         print('The Mean Squared Error of forecasts is {} (raw)'.format(np.average(test_epoch_mse)))
         print('The Mean Absolute Error of forecasts is {} (raw)'.format(np.average(test_epoch_mae)))
 
-        # if args.show_plot:
-        #     for p_id in range(72):
-        #         draw_true_pre_compare(xscaler.inverse_transform(
-        #             Xtest.reshape(-1, num_features)).reshape(X_test_all.shape[0], -1, num_features)[p_id, :, 0],
-        #                               yPred_test[p_id], ytest[p_id], p_id)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -163,47 +133,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.run_test:
-        # old_data_path = get_data_path("merged_0801_0830_bd_t_feats_hour.pkl")
-        # data_path = get_data_path("merged_0901_0930_bd_t_feats_hour.pkl")
-        # mac_attr_path = get_data_path("20220901-20220930_mac_attr.pkl")
-        #
-        # old_data = pd.read_pickle(open(old_data_path, 'rb'))
-        # data = pd.read_pickle(open(data_path, 'rb'))
-        # mac_attr = pd.read_pickle(open(mac_attr_path, 'rb'))
-        #
-        # old_app = old_data['name'].unique()
-        # data_app = data[data['name'].apply(lambda x: x not in old_app and x != 'default' and x!= 'ipaasDetectd')]
-        #
-        # data_with_mac_feats = mac_attributes_pro(mac_attr, data_app)
-        # # data_with_mac_feats = data_with_mac_feats[data_with_mac_feats['name']=='dcache']
-        # X_all = []
-        # y_all = []
-        #
-        # features = ["bw_upload", "hour", "day", "week", 'province', 'bandwidth_type', 'nat_type', 'isp', 'billing_rule',
-        #           'upbandwidth', 'upbandwidth_base', 'cpu_num', 'memory_size', 'disk_size', 'test_sat', 'loss_sat']
-        # num_feats = len(features)
-        # macs = data_with_mac_feats['machine_id'].unique()
-        #
-        # for mac in macs:
-        #     s = data_with_mac_feats[data_with_mac_feats['machine_id'] == mac]
-        #     if len(s) != args.num_periods*30:
-        #         continue
-        #     X = []
-        #     y = []
-        #
-        #     X.append(s[features].values)
-        #     y.append(s['bw_upload'])
-        #
-        #     X_all.append(X)
-        #     y_all.append(y)
-        #
-        # X_all = np.asarray(X_all).reshape((-1, args.num_periods*30, num_feats))
-        # y_all = np.asarray(y_all).reshape((-1, args.num_periods*30))
-
-        #pickle.dump(X_all, open(r"../../../raw_data/x_newapp.pkl", 'wb'))
-        #pickle.dump(y_all, open(r"../../../raw_data/y_newapp.pkl", 'wb'))
-
-        X_all = pickle.load(open(r"../../../raw_data/x_newmac.pkl", 'rb'))
-        y_all = pickle.load(open(r"../../../raw_data/y_newmac.pkl", 'rb'))
+        X_all = pickle.load(open(r"../../data/ECW_newmac.pkl", 'rb'))
+        y_all = X_all[:, :, 0]
 
         reference(X_all, y_all, args)

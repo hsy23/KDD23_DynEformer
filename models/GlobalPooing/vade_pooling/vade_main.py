@@ -30,8 +30,7 @@ def cluster_acc(Y_pred, Y):
 if __name__ == '__main__':
     parse = argparse.ArgumentParser(description='VaDE')
     parse.add_argument('--batch_size', type=int, default=40000)
-    parse.add_argument('--dataX_dir', type=str, default='../../../../raw_data/X_0801_0830_seasonal.pkl')
-    parse.add_argument('--dataY_dir', type=str, default='../../../raw_data/y_all_0801_0830.npy')
+    parse.add_argument('--dataX_dir', type=str, default='../../data/ECW_08.pkl')
     parse.add_argument('--nClusters', type=int, default=400)
     # parse.add_argument('--step_per_epoch', type=int, default=300)
 
@@ -53,58 +52,8 @@ if __name__ == '__main__':
         # vade=nn.DataParallel(vade, device_ids=range(4))
 
     best_n = vade.pre_train(pre_epoch=1000)
-    # torch.save(vade, open('c5_vade.pkl', 'wb'))
-    # vade.predict(X[:, 24*24:, 0])
     for cn in range(100, 650, 100):
         build_global_pool(cn, args)
-
-    # opti = Adam(vade.parameters(), lr=2e-3)
-    # lr_s = StepLR(opti, step_size=10, gamma=0.95)
-
-    # writer = SummaryWriter('./logs')
-    #
-    # epoch_bar=tqdm(range(10))
-    #
-    # tsne=TSNE()
-    #
-    # for epoch in epoch_bar:
-    #
-    #     lr_s.step()
-    #     L = 0
-    #     for x in X:
-    #         if args.cuda:
-    #             x = x.cuda()
-    #
-    #         loss = vade.module.ELBO_Loss(x)
-    #
-    #         opti.zero_grad()
-    #         loss.backward()
-    #         opti.step()
-    #
-    #         L+=loss.detach().cpu().numpy()
-    #
-    #
-    #     pre=[]
-    #     tru=[]
-    #
-    #     with torch.no_grad():
-    #         for x, y in []:
-    #             if args.cuda:
-    #                 x = x.cuda()
-    #
-    #             tru.append(y.numpy())
-    #             pre.append(vade.module.predict(x))
-    #
-    #
-    #     tru=np.concatenate(tru,0)
-    #     pre=np.concatenate(pre,0)
-    #
-    #
-    #     writer.add_scalar('loss',L/len(X),epoch)
-    #     writer.add_scalar('acc',cluster_acc(pre,tru)[0]*100,epoch)
-    #     writer.add_scalar('lr',lr_s.get_lr()[0],epoch)
-    #
-    #     epoch_bar.write('Loss={:.4f},ACC={:.4f}%,LR={:.4f}'.format(L/len(DL),cluster_acc(pre,tru)[0]*100,lr_s.get_lr()[0]))
 
 
 

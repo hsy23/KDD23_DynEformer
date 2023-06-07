@@ -191,8 +191,6 @@ class DynEformer(torch.nn.Module):
             d = dec(d, e)
 
         # output
-        # d = d.transpose(0, 1)  # 交换0/1维度
-        # x = self.out_fc(d.flatten(start_dim=1))
         x = self.out_fc(d)[:, -self.out_seq_len:, :].squeeze(-1)
 
         return x

@@ -54,10 +54,10 @@ def batch_generator_all(X, Y, num_obs_to_train, seq_len):
             Xf_all.append(X[i, j:j+seq_len])
             Yf_all.append(Y[i, j:j+seq_len])
 
-    X_train_all = np.asarray(X_train_all).reshape(-1, num_obs_to_train, n_feats)
-    Y_train_all = np.asarray(Y_train_all).reshape(-1, num_obs_to_train)
-    Xf_all = np.asarray(Xf_all).reshape(-1, seq_len, n_feats)
-    Yf_all = np.asarray(Yf_all).reshape(-1, seq_len)
+    X_train_all = np.asarray(X_train_all).reshape(-1, num_obs_to_train, n_feats).astype(float)
+    Y_train_all = np.asarray(Y_train_all).reshape(-1, num_obs_to_train).astype(float)
+    Xf_all = np.asarray(Xf_all).reshape(-1, seq_len, n_feats).astype(float)
+    Yf_all = np.asarray(Yf_all).reshape(-1, seq_len).astype(float)
     return X_train_all, Y_train_all, Xf_all, Yf_all
 
 
@@ -143,7 +143,6 @@ def train(X, y, args):
         losses.append(np.average(train_epoch_loss))
         print('The MSE Loss {}'.format(losses[-1]))
 
-        # pickle.dump(model, open("deepar_{}.pkl".format(time.strftime("%m%d%H%M", time.localtime())), 'wb'))
 
         # test
         with torch.no_grad():
@@ -179,32 +178,12 @@ def train(X, y, args):
                 print('The Test MSE Loss is {}'.format(np.average(test_epoch_loss)))
                 print('The Mean Squared Error of forecasts is {} (raw)'.format(np.average(test_epoch_mse)))
                 print('The Mean Absolute Error of forecasts is {} (raw)'.format(np.average(test_epoch_mae)))
-
-    if args.save_model:
-        torch.save(model, open("deepar_{}.pkl".format(time.strftime("%m%d%H%M", time.localtime())), 'wb'))
-        # pickle.dump(model, open("deepar_{}.pkl".format(time.strftime("%m%d%H%M", time.localtime())), 'wb'))
-
-    # if args.show_plot:
-    #     plt.figure(1, figsize=(20, 5))
-    #     plt.plot([len(y[0]) - k for k in range(seq_len, 0, -1)], p50, "r-")
-    #     plt.fill_between(x=[len(y[0]) - k for k in range(seq_len, 0, -1)], y1=p10, y2=p90, alpha=0.5)
-    #     plt.title('Prediction uncertainty')
-    #     # yplot = yte[-1, -seq_len - num_obs_to_train:]
-    #     # plt.plot(range(len(yplot)), yplot, "k-")
-    #     plt.plot(range(len(y[0])), y[0], "k-")
-    #     plt.legend(["P50 forecast", "true", "P10-P90 quantile"], loc="upper left")
-    #     ymin, ymax = plt.ylim()
-    #     plt.vlines(len(y[0]) - seq_len, ymin, ymax, color="blue", linestyles="dashed", linewidth=2)
-    #     plt.ylim(ymin, ymax)
-    #     plt.xlabel("Periods")
-    #     plt.ylabel("Y")
-    #     plt.show()
     return losses, test_losses
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--num_epoches", "-e", type=int, default=5)
+    parser.add_argument("--num_epoches", "-e", type=int, default=500)
     parser.add_argument("--step_per_epoch", "-spe", type=int, default=300)
     parser.add_argument("-lr", type=float, default=1e-4)
     parser.add_argument("--n_layers", "-nl", type=int, default=3)
@@ -231,13 +210,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.run_test:
-        X_all = pickle.load(open(get_data_path("X_all_0801_0830.pkl"), 'rb'))
-        y_all = pickle.load(open(get_data_path("y_all_0801_0830.pkl"), 'rb'))
-        X_all = X_all[:, :, 1:]
+        X_all = np.load(open(r"../../data/ECW_08.npy", 'rb'), allow_pickle=True)
+        y_all = X_all[:, :, 0]  # the target workload
+        X_all = X_all[:, :, 1:4]
         losses, test_losses = train(X_all, y_all, args)
-        # pickle.dump(test_losses, open("DeepAR_test_losses_{}.pkl".format(time.strftime("%m%d%H%M", time.localtime())), 'wb'))
-        # if args.show_plot:
-        #     plt.plot(range(len(losses)), losses, "k-")
-        #     plt.xlabel("Period")
-        #     plt.ylabel("Loss")
-        #     plt.show()
