@@ -1,4 +1,4 @@
-# One for All: UnifiedWorkload Prediction for Dynamic Multi-tenant Edge Cloud Platforms (KDD'23 Research Track)
+# One for All: Unified Workload Prediction for Dynamic Multi-tenant Edge Cloud Platforms (KDD'23 Research Track)
 ![](https://img.shields.io/badge/python-3.7-brightgreen.svg)
 ![](https://img.shields.io/badge/Pytorch-red.svg)
 ![](https://img.shields.io/badge/license-brightgreen.svg)
