@@ -94,10 +94,9 @@ class VaDE(nn.Module):
 
         print('Pretraining......')
         epoch_bar = tqdm(range(pre_epoch))
-        _, X_train_all, _ = get_pworkload(self.X, self.Y, std='minmax', series_len=self.args.series_len, step=self.args.step, batch_size=self.args.batch_size)
+        x_all_loader, X_train_all, X_train_all_np = get_pworkload(self.X, self.Y, std='minmax', series_len=self.args.series_len, step=self.args.step, batch_size=self.args.batch_size)
         for i in epoch_bar:
             L = 0
-            #for x in x_all:
             if self.args.cuda:
                 x = X_train_all.cuda()
 
@@ -118,50 +117,27 @@ class VaDE(nn.Module):
         Z = []
         Y = []
         with torch.no_grad():
-            # for x in x_all:
             if self.args.cuda:
                 x = X_train_all.cuda()
 
             z1, z2 = self.encoder(x)
             assert F.mse_loss(z1, z2) == 0
             Z.append(z1)
-            # Y.append(y)
 
         Z = torch.cat(Z, 0).detach().cpu().numpy()  # 将列表合成一个tensor
-        min_bic = 1e10
-        best_gmm =None
-        best_n = 0
-        # Y = torch.cat(Y, 0).detach().numpy()
+        best_n = self.args.nClusters
 
-        # aic_l = []
-        # bic_l = []
-        # for n_c in tqdm(range(1, 650, 50)):
-        #     gmm = GaussianMixture(n_components=n_c, covariance_type='diag')
-        #     try:
-        #         gmm_model = gmm.fit(Z.reshape(-1, 10))
-        #     except:
-        #         pass
-        #     if gmm_model.bic(Z.reshape(-1, 10)) < min_bic:
-        #         min_bic = gmm_model.bic(Z.reshape(-1, 10))
-        #         best_gmm = gmm_model
-        #         best_n = n_c
-        #     # print('aic:', gmm_model.aic(Z.reshape(-1, 10)))
-        #     aic_l.append(gmm_model.aic(Z.reshape(-1, 10)))
-        #     bic_l.append(gmm_model.bic(Z.reshape(-1, 10)))
+        gmm = GaussianMixture(n_components=best_n, covariance_type='diag')
+        gmm_model = gmm.fit(Z.reshape(-1, 10))
+        best_gmm = gmm_model
+        pre_res = best_gmm.predict(Z.reshape(-1, 10))
+        self.pi_.data = torch.from_numpy(best_gmm.weights_).cuda().float()
+        self.mu_c.data = torch.from_numpy(best_gmm.means_).cuda().float()
+        self.log_sigma2_c.data = torch.log(torch.from_numpy(best_gmm.covariances_).cuda().float())
+        return X_train_all_np, pre_res
 
-        for cn in tqdm(range(100, 650, 100)):
-            gmm = GaussianMixture(n_components=cn, covariance_type='diag')
-            gmm_model = gmm.fit(Z.reshape(-1, 10))
-            best_gmm = gmm_model
-            pre_res = best_gmm.predict(Z.reshape(-1, 10))
-            self.pi_.data = torch.from_numpy(best_gmm.weights_).cuda().float()
-            self.mu_c.data = torch.from_numpy(best_gmm.means_).cuda().float()
-            self.log_sigma2_c.data = torch.log(torch.from_numpy(best_gmm.covariances_).cuda().float())
-        return best_n
-
-
-    def predict(self, x):
-        _, X_test_all, y_test_all = get_pworkload(x, None, wtype='test', std='minmax',
+    def predict(self, x, type):
+        _, X_test_all, X_raw_all, y_test_all, y_raw_all = get_pworkload(x, None, wtype='test', std='minmax',
                                                                series_len=self.args.series_len, step=self.args.step,
                                                                batch_size=self.args.batch_size)
         z_mu, z_sigma2_log = self.encoder(X_test_all.cuda())
@@ -171,9 +147,7 @@ class VaDE(nn.Module):
         mu_c = self.mu_c
         yita_c = torch.exp(torch.log(pi.unsqueeze(0))+self.gaussian_pdfs_log(z, mu_c, log_sigma2_c))
         yita = yita_c.detach().cpu().numpy()
-        pickle.dump([X_test_all, y_test_all, yita],
-                    open(r'../../../raw_data/test_data_cluster.pkl', 'wb'))
-        # return np.argmax(yita, axis=1)
+        return [X_raw_all, y_raw_all, np.argmax(yita, axis=1)]
 
     def ELBO_Loss(self,x,L=1):
         det=1e-10
