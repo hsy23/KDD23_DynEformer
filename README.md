@@ -13,7 +13,7 @@ This is the origin Pytorch implementation of DynEformer in the following paper: 
 </div>
 
 ## Global Pooling
-Before predicting with DynEformer, first create a Global Pool for your data using [vade_main](./models/GlobalPooing/vade_pooling/vade_main.py). This identifies and stores patterns in your time series data. In our work, the Global Pool is built on the seasonal component of edge cloud server load. Ensure [decomposed](models/series_decomp.py) data is generated before using vade_main when replicating the experiment.
+Before predicting with DynEformer, first create a Global Pool for your data using [vade_main](models/GlobalPooing/vade_search_cluster/vade_main.py). This identifies and stores patterns in your time series data. In our work, the Global Pool is built on the seasonal component of edge cloud server load. Ensure [decomposed](models/GlobalPooing/series_decomp.py) data is generated before using vade_main when replicating the experiment.
 
 <div align="center">
   <img src="https://github.com/hsy23/KDD23_DynEformer/assets/45703329/abadfc62-7fd4-4082-93c9-7921e3c8d9d9">
