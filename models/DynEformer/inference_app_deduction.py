@@ -75,7 +75,7 @@ def inference(X, y, args):
 
     num_ts, num_periods, num_features = X.shape
     input_size = 4  # encoder输入维度 只包括bw和日期mark
-    with open(r'../GlobalPooing/vade_pooling/global_pool_c551_s48_s12.pkl', 'rb') as f:
+    with open(r'../GlobalPooing/vade_search_cluster/global_pool_c551_s48_s12.pkl', 'rb') as f:
         timeFeature_pool = pickle.load(f)
     sFeature = torch.tensor(np.stack(timeFeature_pool.seasonal_pool).T).to(device)
     timeFeature = sFeature

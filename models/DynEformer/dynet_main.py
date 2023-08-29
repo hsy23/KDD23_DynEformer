@@ -69,11 +69,9 @@ def train(X, y, args):
     input_size = 4
     cn = 551
     print('cn: {}'.format(cn))
-    with open(r'../GlobalPooing/vade_pooling/global_pool_c{}_s48_s12.pkl'.format(cn), 'rb') as f:
+    with open(r'../GlobalPooing/vade_search_cluster/global_pool_c{}_s48_s12.pkl'.format(cn), 'rb') as f:
         globalPool_pool = pickle.load(f)
     sFeature = torch.tensor(np.stack(globalPool_pool.seasonal_pool).T).float().to(device)
-    # tFeature = torch.tensor(np.stack(globalPool_pool.trend_pool).T).to(device)
-    # stFeature = torch.concat((sFeature, tFeature), dim=1)
 
     globalPool = sFeature
     P = globalPool.shape[-1]
