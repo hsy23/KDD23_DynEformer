@@ -39,3 +39,7 @@ The ECW dataset used in the paper can be downloaded in the repo [ECWDataset](htt
   <img src="https://github.com/hsy23/KDD23_DynEformer/assets/45703329/b523ec9f-0e2f-49d6-9780-687a903790fd">
   <p>Figure 2.The process of building the global pool.</p>
 </div>
+
+## Pipline
+To reproduce the experiments or to adapt the whole process to your own dataset, follow these steps:
+1. 
