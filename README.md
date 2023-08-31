@@ -42,4 +42,5 @@ The ECW dataset used in the paper can be downloaded in the repo [ECWDataset](htt
 
 ## Pipline
 To reproduce the experiments or to adapt the whole process to your own dataset, follow these steps:
+
 1. 
