@@ -1,6 +1,4 @@
 import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
 from torch import nn
 import argparse
 import math
@@ -11,13 +9,7 @@ from torch.optim import Adam
 import torch
 import time
 from torch.utils.data import DataLoader, Dataset
-
-import sys
-sys.path.append('../')
-sys.path.append('../GlobalPooing')  # 添加路径以找到类
-
-from data_process_utils import *
-from global_utils import *
+from models.global_utils import train_test_split
 
 
 def get_mape(yTrue, yPred, scaler=None):
@@ -43,24 +35,19 @@ def get_mae(yTrue, yPred, scaler):
     return np.mean(np.abs(yTrue - yPred))
 
 
-
 class PPIO_Dataset(Dataset):
-    def __init__(self, X, enc_len=48, label_len=12, pred_len=24, num_static=12):
+    def __init__(self, X, enc_len=48, label_len=12, pred_len=24):
         self.pred_len = pred_len
         num_ts, num_periods, num_features = X.shape
         sq_len = enc_len + pred_len
         X_train_all = []
-        Y_train_all = []
         X.astype(float)
 
         for i in range(num_ts):
             for j in range(sq_len, num_periods, 12):
                 X_train_all.append(X[i, j - sq_len:j, :])
-                # Y_train_all.append(Y[i, j - pred_len:j])
 
         self.X = np.stack(X_train_all).reshape(-1, sq_len, num_features)
-        # self.Y = np.stack(Y_train_all).reshape(-1, pred_len)
-        # self.Y = np.asarray(X[:,:,0]).reshape(-1, sq_len)
 
     def __len__(self):
         return self.X.shape[0]
@@ -79,8 +66,6 @@ def train(X, y, args):
     model = model.to(device)
 
     optimizer = Adam(model.parameters(), lr=args.lr)
-    random.seed(2)
-    # select sku with most top n quantities
 
     Xtr, ytr, Xte, yte = train_test_split(X, y)
     xscaler = preprocessing.MinMaxScaler()
@@ -92,8 +77,6 @@ def train(X, y, args):
     yscaler.fit(ytr.reshape(-1, 1))
     Xtr_loader = DataLoader(PPIO_Dataset(Xtr), batch_size=args.batch_size)
     Xte_loader = DataLoader(PPIO_Dataset(Xte), batch_size=args.batch_size)
-
-    pickle.dump([xscaler, yscaler], open('8_scalers_deeptrans.pkl', 'wb'))
 
     losses = []
     test_loss = []
@@ -107,7 +90,6 @@ def train(X, y, args):
         train_epoch_loss = []
         for Xtrain, ytrain in Xtr_loader:
             Xtrain_tensor = Xtrain.float().to(device)[:, :, :4]
-            Train_static_context = Xtrain.float().to(device)[:, 0, 4:].squeeze(1)
             ytrain_tensor = ytrain.float().to(device)
 
             ypred = model(Xtrain_tensor)
@@ -127,7 +109,6 @@ def train(X, y, args):
         with torch.no_grad():
             for x, y in Xte_loader:
                 x_load = x.float().to(device)[:, :, :4]
-                x_static = x.float().to(device)[:, 0, 4:].squeeze(1)
                 y = y.float().to(device)
 
                 yPred = model(x_load)
@@ -144,10 +125,11 @@ def train(X, y, args):
         # test_mape.append(np.mean(epo_mape))
         test_mae.append(np.mean(epo_mae))
 
-        if test_loss[-1] < min_loss:
-            best_model = model
-            min_loss = test_loss[-1]
-            torch.save(model, 'DeepTrans_ppio_best.pt')
+        if args.save_model:
+            if test_loss[-1] < min_loss:
+                best_model = model
+                min_loss = test_loss[-1]
+                torch.save(model, 'saved_mode/DeepTrans_best.pt')
 
         print(f'epoch {epoch}, train loss: {losses[-1]}, test loss: {test_loss[-1]}, mse: {test_mse[-1]}, mae: {test_mae[-1]}')
     print(np.min(test_mse), np.min(test_mae))
@@ -170,7 +152,7 @@ if __name__ == "__main__":
     parser.add_argument("--n_decoder_layers", "-ndl", type=int, default=1)
     parser.add_argument("--d_model", "-dm", type=int, default=256)  # 嵌入维度
     parser.add_argument("--nhead", "-nh", type=int, default=8)  # 注意力头数量
-    parser.add_argument("--dim_feedforward", "-hs", type=int, default=256)
+    parser.add_argument("--dim_feedforward", "-hs", type=int, default=512)
     parser.add_argument("--dec_seq_len", "-dl", type=int, default=12)  # decoder用到的输入长度
     parser.add_argument("--out_seq_len", "-ol", type=int, default=24)  # 预测长度
     parser.add_argument("--enc_seq_len", "-not", type=int, default=24*2)  # 输入训练长度
@@ -178,13 +160,9 @@ if __name__ == "__main__":
     parser.add_argument("-activation", type=str, default='relu')
 
     parser.add_argument("--run_test", "-rt", action="store_true", default=True)
-    parser.add_argument("--save_model", "-sm", type=bool, default=True)
+    parser.add_argument("--save_model", "-sm", type=bool, default=False)
     parser.add_argument("--load_model", "-lm", type=bool, default=False)
     parser.add_argument("--show_plot", "-sp", type=bool, default=False)
-
-    parser.add_argument("--day_periods", "-dp", type=int, default=288)
-    parser.add_argument("--num_periods", "-np", type=int, default=24)
-    parser.add_argument("--num_days", "-ds", type=int, default=30)
 
     args = parser.parse_args()
 

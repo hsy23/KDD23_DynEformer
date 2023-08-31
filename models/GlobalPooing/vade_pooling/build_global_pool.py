@@ -1,6 +1,6 @@
-import numpy as np
 import pickle
 import matplotlib.pyplot as plt
+from models.GlobalPooing.vade_pooling.GlobalPool import GlobalPool
 
 
 def draw_series(s):
@@ -10,42 +10,13 @@ def draw_series(s):
     # plt.title('trend clusters valuation')
     plt.show()
 
-
-class global_pool():
-    def __init__(self, trend_class_num, seasonal_class_num):
-        self.trend_pool = []
-        self.seasonal_pool = []
-
-        self.trend_class_num = trend_class_num
-        self.seasonal_class_num = seasonal_class_num
-
-    def build_pool_trend(self, series, classes):
-        for i in range(self.trend_class_num):
-            cluster_index = np.argwhere(classes == i).squeeze(1)
-            if len(cluster_index) != 0:
-                self.trend_pool.append(np.average(series[cluster_index], axis=0))
-            else:
-                self.trend_pool.append(np.zeros(series.shape[1]))
-        self.trend_pool = np.asarray(self.trend_pool)
-
-    def build_pool_seasonal(self, series, classes):
-        for i in range(self.seasonal_class_num):
-            cluster_index = np.argwhere(classes == i).squeeze(1)
-            if len(cluster_index) != 0:
-                self.seasonal_pool.append(np.average(series[cluster_index], axis=0))
-            else:
-                # self.seasonal_pool.append(np.zeros(series.shape[1]))
-                pass
-        self.seasonal_pool = np.asarray(self.seasonal_pool)
-
-
-def build_global_pool(decomp_X, seasonal_cluster_res, args):
+def build_gp(decomp_X, seasonal_cluster_res, args):
     cluster_num = args.nClusters
-    global_pool_ = global_pool(cluster_num, cluster_num)
-    global_pool_.build_pool_seasonal(decomp_X, seasonal_cluster_res)
+    gp = GlobalPool(cluster_num, cluster_num)
+    gp.build_pool_seasonal(decomp_X, seasonal_cluster_res)
 
-    pickle.dump(global_pool_, open('../pools/global_pool_c{}_s{}_s{}.pkl'.format(cluster_num, args.series_len, args.step), 'wb'))
+    pickle.dump(gp, open('../pools/global_pool_c{}_s{}_s{}.pkl'.format(cluster_num, args.series_len, args.step), 'wb'))
 
 
-if __name__ == '__main__':
-    pass
+if __name__ == "__main__":
+    print('test')

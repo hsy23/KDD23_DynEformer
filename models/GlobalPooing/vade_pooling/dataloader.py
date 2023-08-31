@@ -23,7 +23,7 @@ def get_pworkload(X_raw, Y, wtype='train', std=None, series_len=24*2, step=12, b
         seq_len (int): sequence/encoder/decoder length
         batch_size (int)
         '''
-    X = X_raw[:, :, 0]
+    X = X_raw
     if type(X) == list:
         X = np.asarray(X)
     num_ts, num_periods = X.shape

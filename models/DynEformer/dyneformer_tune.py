@@ -127,7 +127,7 @@ class DynEformer(torch.nn.Module):
     def __init__(self, dim_val, dim_attn, dim_feedforward, input_size, enc_seq_len, dec_seq_len, out_seq_len,
                  n_decoder_layers=1, n_encoder_layers=1, n_heads=1, dropout=0.5, activation='relu',
                  time_feature_len=150, dim_static=12, if_padding=True):
-        super(Transformer, self).__init__()
+        super(DynEformer, self).__init__()
         self.enc_seq_len = enc_seq_len
         self.dec_seq_len = dec_seq_len
         self.out_seq_len = out_seq_len

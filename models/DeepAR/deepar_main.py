@@ -26,10 +26,6 @@ import argparse
 from tqdm import tqdm
 from deepar_model import DeepAR
 
-import sys
-sys.path.append(r'../')
-from data_process_utils import *
-from global_utils import *
 
 
 def batch_generator_all(X, Y, num_obs_to_train, seq_len):

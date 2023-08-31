@@ -1,5 +1,3 @@
-from auto_informer import Informer, Autoformer
-import numpy as np
 import torch
 import torch.nn as nn
 from torch import optim
@@ -14,7 +12,10 @@ import warnings
 import matplotlib.pyplot as plt
 import numpy as np
 
-from global_utils import train_test_split
+from Autoformer import Model as Autoformer
+from Informer import Model as Informer
+
+from models.global_utils import train_test_split
 
 warnings.filterwarnings('ignore')
 parser = argparse.ArgumentParser(description='Autoformer & Transformer family for Time Series Forecasting')
@@ -66,6 +67,9 @@ parser.add_argument('--use_gpu', type=bool, default=True, help='use gpu')
 parser.add_argument('--gpu', type=int, default=0, help='gpu')
 parser.add_argument('--use_multi_gpu', action='store_true', help='use multiple gpus', default=False)
 parser.add_argument('--devices', type=str, default='1', help='device ids of multile gpus')
+
+# save and test
+parser.add_argument('--save_model', type=bool, default=True, help='save best model')
 
 def get_mape(yTrue, yPred, scaler=None):
     if scaler:
@@ -129,7 +133,7 @@ class PPIO_Dataset(Dataset):
 
 
 def get_ppio(batch_size=256):
-    X = np.load(open('ECW_08.npy', 'rb'), allow_pickle=True)
+    X = np.load(open(r"../../data/ECW_08.npy", 'rb'), allow_pickle=True)
     y = X[:, :, 0]
 
     Xtr, ytr, Xte, yte = train_test_split(X, y)
@@ -151,7 +155,13 @@ def get_ppio(batch_size=256):
 device = torch.device('cuda:0')
 args = parser.parse_args()
 epochs = 300
-model = Informer.Model(args).float()
+used_model = 'Autoformer'
+
+if used_model == 'Informer':
+    model = Informer(args).float()
+else:
+    model = Autoformer(args).float()
+
 # model = nn.DataParallel(model)
 model = model.to(device)
 
@@ -222,6 +232,13 @@ for epoch in range(epochs):
     test_mse.append(np.mean(epo_mse))
     test_mape.append(np.mean(epo_mape))
     test_mae.append(np.mean(epo_mae))
-    
+
+    if args.save_model:
+        if test_loss[-1] < min_loss:
+            best_model = model
+            min_loss = test_loss[-1]
+            torch.save(model, 'saved_model/{}_best.pt'.format(used_model))
+
     print(f'epoch {epoch}, train loss: {train_loss[-1]}, test loss: {test_loss[-1]}, mse: {test_mse[-1]}, mape: {test_mape[-1]}, mae: {test_mae[-1]}')
+
 print(np.min(test_mse), np.min(test_mape), np.min(test_mae))

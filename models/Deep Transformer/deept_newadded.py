@@ -10,7 +10,7 @@ import torch
 import time
 
 
-def batch_generator_all(X, Y, num_obs_to_train, seq_len):
+def batch_generator_all(X, Y, num_obs_to_train, seq_len, step):
     '''
         Args:
         X (array like): shape (num_samples, num_features, num_periods)
@@ -24,7 +24,7 @@ def batch_generator_all(X, Y, num_obs_to_train, seq_len):
     Y_train_all = []
 
     for i in range(num_ts):
-        for j in range(num_obs_to_train, num_periods - seq_len, 2):
+        for j in range(num_obs_to_train, num_periods - seq_len, step):
             X_train_all.append(X[i, j-num_obs_to_train:j, :])
             Y_train_all.append(Y[i, j:j+seq_len])
 
@@ -51,7 +51,7 @@ def reference(X, y, args):
 
     pre_seq_len = args.out_seq_len
     num_obs_to_train = args.enc_seq_len
-    X_test_all, Y_test_all = batch_generator_all(Xte, yte, num_obs_to_train, pre_seq_len)
+    X_test_all, Y_test_all = batch_generator_all(Xte, yte, num_obs_to_train, pre_seq_len, args.step)
 
     with torch.no_grad():
         test_epoch_loss = []
@@ -81,6 +81,7 @@ def reference(X, y, args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument("--step", "-stp", type=int, default=2)
 
     parser.add_argument("--dec_seq_len", "-dl", type=int, default=12)  # decoder用到的输入长度
     parser.add_argument("--out_seq_len", "-ol", type=int, default=24)  # 预测长度

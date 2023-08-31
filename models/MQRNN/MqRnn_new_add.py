@@ -25,10 +25,7 @@ import argparse
 from datetime import date
 from tqdm import tqdm
 
-import sys
-sys.path.append('../')
-from data_process_utils import *
-from global_utils import *
+
 
 
 def batch_generator_all(X, Y, num_obs_to_train, seq_len):
