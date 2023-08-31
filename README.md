@@ -46,12 +46,12 @@ To reproduce the experiments or to adapt the whole process to your own dataset, 
 **Reproduce:**
 
 1. **run** 'models/GlobalPooling/vade_pooling/global_pooling_main.py' to **generate the global pool**
-2. **run** 'models/DynEformer/dyneformer_main.py' to **train and save the DynEformer **
+2. **run** 'models/DynEformer/dyneformer_main.py' to **train and save the DynEformer**
 3. **run** 'models/DynEformer/dynet_app_switch.py' or 'models/DynEformer/dynet_newadded.py' to **inference**
 
 **Adapt to your own dataset**
 
 1. **run** 'models/GlobalPooing/vade_search_cluster.py' to **find the best K for the global pool**
 2. **run** 'models/GlobalPooling/vade_pooling/global_pooling_main.py' to **generate the global pool**
-3. **run** 'models/DynEformer/dyneformer_main.py' to **train and save the DynEformer **
+3. **run** 'models/DynEformer/dyneformer_main.py' to **train and save the DynEformer**
 4.  **run** 'models/DynEformer/dynet_app_switch.py' or 'models/DynEformer/dynet_newadded.py' to **inference**
