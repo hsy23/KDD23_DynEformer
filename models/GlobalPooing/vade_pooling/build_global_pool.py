@@ -1,4 +1,5 @@
 import numpy as np
+import pickle
 import matplotlib.pyplot as plt
 
 
@@ -38,9 +39,13 @@ class global_pool():
         self.seasonal_pool = np.asarray(self.seasonal_pool)
 
 
-def build_global_pool(decomp_X, seasonal_cluster_res, best_n):
-    cluster_num = best_n
+def build_global_pool(decomp_X, seasonal_cluster_res, args):
+    cluster_num = args.nClusters
     global_pool_ = global_pool(cluster_num, cluster_num)
     global_pool_.build_pool_seasonal(decomp_X, seasonal_cluster_res)
 
-    return global_pool_
+    pickle.dump(global_pool_, open('../pools/global_pool_c{}_s{}_s{}.pkl'.format(cluster_num, args.series_len, args.step), 'wb'))
+
+
+if __name__ == '__main__':
+    pass
