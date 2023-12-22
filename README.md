@@ -35,7 +35,7 @@ Dependencies can be installed using the following command:
 ## Data
 The ECW dataset used in the paper can be downloaded in the repo [ECWDataset](https://github.com/hsy23/ECWDataset). The required data files should be put into data folder. A demo slice of the ECW data is illustrated in the following figure. 
 
-Note that the data in the [dataset link]((https://github.com/hsy23/ECWDataset)) are min-max normalized values, if you need to reproduce the paper, you can use the [data](https://github.com/hsy23/KDD23_DynEformer/tree/main/data) in this repository directly.
+Note that the data in the [ECWDataset](https://github.com/hsy23/ECWDataset) are min-max normalized values, if you need to reproduce the paper, you can use the [data](https://github.com/hsy23/KDD23_DynEformer/tree/main/data) in this repository directly.
 
 <div align="center">
   <img src="https://github.com/hsy23/KDD23_DynEformer/assets/45703329/b523ec9f-0e2f-49d6-9780-687a903790fd">
