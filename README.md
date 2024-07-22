@@ -39,7 +39,6 @@ Note that the data in the [ECWDataset](https://github.com/hsy23/ECWDataset) are 
 
 <div align="center">
   <img src="https://github.com/hsy23/KDD23_DynEformer/assets/45703329/b523ec9f-0e2f-49d6-9780-687a903790fd">
-  <p>Figure 2.The process of building the global pool.</p>
 </div>
 
 ## Pipline
